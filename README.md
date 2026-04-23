@@ -37,7 +37,7 @@ The agent can:
 
 The agent is built as a 5-layer system. The user communicates through the outermost layer and the system routes intelligently through inner layers based on intent.
 
-![Architecture Overview](assets/arch_overview.svg)
+![Architecture Overview](assets_arch_overview.svg)
 
 ---
 
@@ -45,7 +45,7 @@ The agent is built as a 5-layer system. The user communicates through the outerm
 
 The core of the agent is a **LangGraph directed state graph**. Every user message passes through the intent classifier, which routes to one of three handler nodes. The conversation state is fully preserved across all turns using a typed `AgentState` object.
 
-![LangGraph State Flow](assets/arch_state_flow.svg)
+![LangGraph State Flow](assets_arch_state_flow.svg)
 
 **Graph nodes:**
 | Node | Responsibility |
@@ -63,7 +63,7 @@ The core of the agent is a **LangGraph directed state graph**. Every user messag
 
 Instead of the LLM hallucinating answers, every product/pricing question is grounded in a **local FAISS vector store** built from the knowledge base files.
 
-![RAG Pipeline](assets/arch_rag_pipeline.svg)
+![RAG Pipeline](assets_arch_rag_pipeline.svg)
 
 **How it works:**
 1. At startup, `pricing.json`, `policies.md`, and `faqs.md` are chunked into passages
@@ -78,7 +78,7 @@ Instead of the LLM hallucinating answers, every product/pricing question is grou
 
 The lead capture tool (`mock_lead_capture`) is **guarded by a slot-filling state machine**. It is physically impossible for the tool to fire before all three fields are collected.
 
-![Lead Capture Guard](assets/arch_lead_guard.svg)
+![Lead Capture Guard](assets_arch_lead_guard.svg)
 
 The `AgentState` tracks which slot is currently being collected via `awaiting_slot`. When all three slots are set in state and the `lead_captured` flag is `False`, only then does the tool execute.
 
@@ -101,32 +101,22 @@ The `AgentState` tracks which slot is currently being collected via `awaiting_sl
 ## Project Structure
 
 ```
-autostream_agent/
+autostream_flat/
 ├── main.py                        # CLI entry point
 ├── requirements.txt               # All dependencies
 ├── .env.example                   # Environment variable template
 ├── .gitignore
-│
-├── agent/
-│   ├── __init__.py
-│   ├── state.py                   # AgentState TypedDict schema
-│   ├── graph.py                   # LangGraph nodes + graph builder
-│   └── rag_pipeline.py            # FAISS-based RAG implementation
-│
-├── tools/
-│   ├── __init__.py
-│   └── lead_capture.py            # mock_lead_capture() tool
-│
-├── knowledge_base/
-│   ├── pricing.json               # AutoStream plans & features
-│   ├── policies.md                # Refund, support, cancellation policies
-│   └── faqs.md                    # Frequently asked questions
-│
-└── assets/
-    ├── arch_overview.svg          # System architecture diagram
-    ├── arch_state_flow.svg        # LangGraph state flow diagram
-    ├── arch_rag_pipeline.svg      # RAG pipeline diagram
-    └── arch_lead_guard.svg        # Lead capture guard diagram
+├── agent_graph.py                 # LangGraph nodes + graph builder
+├── agent_rag_pipeline.py          # FAISS-based RAG implementation
+├── agent_state.py                 # AgentState TypedDict schema
+├── tools_lead_capture.py          # mock_lead_capture() tool
+├── knowledge_base_pricing.json    # AutoStream plans & features
+├── knowledge_base_policies.md     # Refund, support, cancellation policies
+├── knowledge_base_faqs.md         # Frequently asked questions
+├── assets_arch_overview.svg       # Architecture diagram
+├── assets_arch_state_flow.svg     # State flow diagram
+├── assets_arch_rag_pipeline.svg   # RAG pipeline diagram
+└── assets_arch_lead_guard.svg     # Lead capture guard diagram
 ```
 
 ---
