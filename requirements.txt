@@ -1,0 +1,21 @@
+# AutoStream Agent — Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# LLM & Agent Framework
+langchain
+langchain-groq          # Groq backend (recommended — free & ultra-fast)
+langchain-anthropic    # Anthropic backend (fallback)
+langchain-core
+langgraph
+
+# Embeddings & Vector Store (fully local — no API cost)
+sentence-transformers==3.4.1
+faiss-cpu==1.12.0
+
+# Anthropic SDK
+anthropic
+
+# Utilities
+python-dotenv==1.0.1
+numpy
+typing-extensions==4.12.2

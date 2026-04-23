@@ -1,0 +1,41 @@
+{
+  "product": "AutoStream",
+  "description": "Automated video editing tools for content creators",
+  "plans": [
+    {
+      "name": "Basic Plan",
+      "price": "$29/month",
+      "price_number": 29,
+      "billing": "monthly",
+      "features": [
+        "10 videos per month",
+        "720p resolution output",
+        "Basic auto-cut and trim",
+        "Standard templates library",
+        "Email support (business hours)"
+      ],
+      "best_for": "Individual creators just getting started"
+    },
+    {
+      "name": "Pro Plan",
+      "price": "$79/month",
+      "price_number": 79,
+      "billing": "monthly",
+      "features": [
+        "Unlimited videos per month",
+        "4K resolution output",
+        "AI-powered captions and subtitles",
+        "Advanced AI scene detection",
+        "Custom branding and watermarks",
+        "Priority rendering queue",
+        "24/7 dedicated support",
+        "API access",
+        "Team collaboration (up to 5 seats)"
+      ],
+      "best_for": "Professional creators and small teams"
+    }
+  ],
+  "comparison": {
+    "Basic vs Pro": "Pro offers unlimited videos, 4K output, AI captions, and 24/7 support compared to Basic's 10 videos/month and 720p limit."
+  }
+}

@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AutoStream — AI Sales Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0a0f;
+    --bg2:       #111118;
+    --bg3:       #18181f;
+    --surface:   #1e1e28;
+    --surface2:  #252530;
+    --border:    rgba(255,255,255,0.07);
+    --border2:   rgba(255,255,255,0.12);
+    --accent:    #7c6bff;
+    --accent2:   #a594ff;
+    --accent3:   #c4baff;
+    --teal:      #00e5c3;
+    --teal2:     #00bfa5;
+    --amber:     #ffb740;
+    --red:       #ff5c5c;
+    --green:     #4cdb8a;
+    --text:      #eeedf5;
+    --text2:     #a8a6bc;
+    --text3:     #6b6a80;
+    --user-bg:   linear-gradient(135deg, #7c6bff 0%, #5a4fe0 100%);
+    --bot-bg:    #1e1e28;
+    --radius:    16px;
+    --shadow:    0 24px 64px rgba(0,0,0,0.6);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    overflow: hidden;
+  }
+
+  /* ── Noise texture overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ── App shell ── */
+  .app {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ══════════════════════════════════════════
+     SIDEBAR
+  ══════════════════════════════════════════ */
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .sidebar::after {
+    content: '';
+    position: absolute;
+    top: -80px; left: -80px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(124,107,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .logo-area {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--teal));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(124,107,255,0.4);
+  }
+
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* Status badge */
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(76, 219, 138, 0.1);
+    border: 1px solid rgba(76, 219, 138, 0.2);
+    color: var(--green);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-top: 10px;
+    width: fit-content;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse-green 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-green {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* Agent info panel */
+  .agent-card {
+    margin: 20px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .agent-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--teal));
+  }
+
+  .agent-avatar {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #2d2b4e, #1a1a2e);
+    border: 2px solid var(--border2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    margin-bottom: 10px;
+  }
+
+  .agent-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  .agent-role {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  .agent-tags {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    margin-top: 12px;
+  }
+
+  .tag {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    background: var(--surface2);
+  }
+
+  /* State panel */
+  .state-panel {
+    margin: 0 16px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .state-panel::-webkit-scrollbar { width: 3px; }
+  .state-panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  .panel-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 10px;
+    padding: 0 4px;
+  }
+
+  .state-item {
+    display: flex; align-items: center;
+    padding: 9px 12px;
+    border-radius: 10px;
+    margin-bottom: 4px;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: border-color 0.3s, background 0.3s;
+  }
+
+  .state-item.filled {
+    border-color: rgba(0, 229, 195, 0.3);
+    background: rgba(0, 229, 195, 0.05);
+  }
+
+  .state-icon {
+    font-size: 14px;
+    width: 20px; text-align: center;
+    flex-shrink: 0;
+  }
+
+  .state-label {
+    font-size: 11px;
+    color: var(--text3);
+    flex: 1;
+  }
+
+  .state-value {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--teal);
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .state-value.empty { color: var(--text3); font-style: italic; }
+
+  /* Intent badge */
+  .intent-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .intent-badge.greeting  { background: rgba(255,183,64,0.15); color: var(--amber); border: 1px solid rgba(255,183,64,0.3); }
+  .intent-badge.inquiry   { background: rgba(124,107,255,0.15); color: var(--accent2); border: 1px solid rgba(124,107,255,0.3); }
+  .intent-badge.high_intent { background: rgba(0,229,195,0.15); color: var(--teal); border: 1px solid rgba(0,229,195,0.3); }
+  .intent-badge.lead_collection { background: rgba(76,219,138,0.15); color: var(--green); border: 1px solid rgba(76,219,138,0.3); }
+  .intent-badge.unknown   { background: rgba(255,92,92,0.15); color: var(--red); border: 1px solid rgba(255,92,92,0.3); }
+
+  /* Sidebar footer */
+  .sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    margin-top: 16px;
+  }
+
+  .model-info {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .model-dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .model-name {
+    font-size: 11px;
+    color: var(--text2);
+    flex: 1;
+  }
+
+  .model-label {
+    font-size: 10px;
+    color: var(--text3);
+    display: block;
+  }
+
+  /* ══════════════════════════════════════════
+     MAIN CHAT AREA
+  ══════════════════════════════════════════ */
+  .main {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Background glow effects */
+  .main::before {
+    content: '';
+    position: absolute;
+    top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(124,107,255,0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .main::after {
+    content: '';
+    position: absolute;
+    bottom: -100px; left: 30%;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(0,229,195,0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Header */
+  .chat-header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+    background: rgba(10,10,15,0.8);
+    backdrop-filter: blur(20px);
+    position: relative; z-index: 10;
+  }
+
+  .chat-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text);
+  }
+
+  .chat-subtitle {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  .header-actions {
+    display: flex; gap: 8px;
+  }
+
+  .icon-btn {
+    width: 36px; height: 36px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 15px;
+    transition: all 0.2s;
+  }
+
+  .icon-btn:hover {
+    background: var(--surface2);
+    border-color: var(--border2);
+    color: var(--text);
+  }
+
+  /* Messages */
+  .messages-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px;
+    scroll-behavior: smooth;
+    position: relative; z-index: 1;
+  }
+
+  .messages-wrap::-webkit-scrollbar { width: 4px; }
+  .messages-wrap::-webkit-scrollbar-track { background: transparent; }
+  .messages-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+  /* Welcome screen */
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    padding: 40px;
+    animation: fadeIn 0.6s ease;
+  }
+
+  .welcome-icon {
+    width: 72px; height: 72px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%);
+    border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px;
+    margin-bottom: 24px;
+    box-shadow: 0 16px 48px rgba(124,107,255,0.35);
+    animation: float 4s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .welcome-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--text) 0%, var(--accent3) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+
+  .welcome-sub {
+    font-size: 14px;
+    color: var(--text2);
+    max-width: 400px;
+    line-height: 1.7;
+    margin-bottom: 32px;
+  }
+
+  .quick-actions {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    justify-content: center;
+    max-width: 520px;
+  }
+
+  .quick-btn {
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text2);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .quick-btn:hover {
+    background: var(--surface2);
+    border-color: var(--accent);
+    color: var(--accent3);
+    transform: translateY(-1px);
+  }
+
+  /* Message bubbles */
+  .message-group {
+    margin-bottom: 20px;
+    animation: msgIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .message-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .message-row.user { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    border: 1.5px solid var(--border);
+  }
+
+  .msg-avatar.bot {
+    background: linear-gradient(135deg, #2d2b4e, #1a1a2e);
+  }
+
+  .msg-avatar.user {
+    background: linear-gradient(135deg, var(--accent), #5a4fe0);
+  }
+
+  .bubble {
+    max-width: 72%;
+    padding: 12px 16px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.65;
+    position: relative;
+  }
+
+  .bubble.bot {
+    background: var(--bot-bg);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+    color: var(--text);
+  }
+
+  .bubble.user {
+    background: var(--user-bg);
+    border-bottom-right-radius: 4px;
+    color: white;
+    box-shadow: 0 4px 20px rgba(124,107,255,0.3);
+  }
+
+  .msg-time {
+    font-size: 10px;
+    color: var(--text3);
+    margin: 4px 40px 0;
+    text-align: right;
+  }
+
+  .msg-time.bot-time { text-align: left; }
+
+  /* Typing indicator */
+  .typing-bubble {
+    display: inline-flex; align-items: center;
+    gap: 4px;
+    padding: 14px 18px;
+    background: var(--bot-bg);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    border-bottom-left-radius: 4px;
+  }
+
+  .typing-dot {
+    width: 6px; height: 6px;
+    background: var(--text3);
+    border-radius: 50%;
+    animation: bounce 1.4s ease-in-out infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* Lead capture success card */
+  .lead-success {
+    background: linear-gradient(135deg, rgba(0,229,195,0.08), rgba(76,219,138,0.08));
+    border: 1px solid rgba(0,229,195,0.25);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-top: 8px;
+  }
+
+  .lead-success-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--teal);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .lead-field {
+    display: flex; gap: 8px;
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+
+  .lead-field-label { color: var(--text3); width: 60px; flex-shrink: 0; }
+  .lead-field-value { color: var(--text); font-weight: 500; }
+
+  /* ══════════════════════════════════════════
+     INPUT AREA
+  ══════════════════════════════════════════ */
+  .input-area {
+    padding: 16px 28px 24px;
+    border-top: 1px solid var(--border);
+    background: rgba(10,10,15,0.9);
+    backdrop-filter: blur(20px);
+    flex-shrink: 0;
+    position: relative; z-index: 10;
+  }
+
+  /* RAG context preview */
+  .rag-preview {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    font-size: 11px;
+    color: var(--text3);
+    line-height: 1.5;
+  }
+
+  .rag-preview.visible { display: block; animation: fadeIn 0.3s ease; }
+
+  .rag-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 4px;
+  }
+
+  .input-row {
+    display: flex; align-items: flex-end; gap: 10px;
+  }
+
+  .input-box {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    max-height: 120px;
+    min-height: 48px;
+    line-height: 1.5;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .input-box::placeholder { color: var(--text3); }
+
+  .input-box:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,107,255,0.12);
+  }
+
+  .send-btn {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--accent), #5a4fe0);
+    border: none;
+    border-radius: 14px;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(124,107,255,0.3);
+  }
+
+  .send-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(124,107,255,0.45);
+  }
+
+  .send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .input-hint {
+    font-size: 11px;
+    color: var(--text3);
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* ── Lead progress tracker ── */
+  .progress-bar {
+    display: flex; gap: 6px;
+    padding: 0 4px;
+    margin-bottom: 12px;
+  }
+
+  .progress-step {
+    height: 3px;
+    flex: 1;
+    border-radius: 3px;
+    background: var(--border);
+    transition: background 0.4s;
+  }
+
+  .progress-step.done { background: var(--teal); }
+  .progress-step.active { background: var(--accent); animation: shimmer 1.5s ease-in-out infinite; }
+
+  @keyframes shimmer {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ── Scrollbar for whole app ── */
+  * { scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+
+  /* ── Config modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    align-items: center; justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 28px;
+    width: 460px;
+    box-shadow: var(--shadow);
+  }
+
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .modal-sub {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 24px;
+  }
+
+  .form-group { margin-bottom: 16px; }
+
+  .form-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .form-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-input:focus { border-color: var(--accent); }
+
+  .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .radio-opt {
+    flex: 1; min-width: 120px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text2);
+    transition: all 0.2s;
+  }
+
+  .radio-opt:hover { border-color: var(--accent); color: var(--accent3); }
+  .radio-opt.selected { border-color: var(--accent); background: rgba(124,107,255,0.1); color: var(--accent3); }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+
+  .btn-primary {
+    flex: 1; padding: 12px;
+    background: linear-gradient(135deg, var(--accent), #5a4fe0);
+    border: none; border-radius: 10px;
+    color: white; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+  }
+
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .btn-ghost {
+    padding: 12px 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text2); font-family: 'DM Sans', sans-serif;
+    font-size: 14px; cursor: pointer; transition: all 0.2s;
+  }
+
+  .btn-ghost:hover { border-color: var(--border2); color: var(--text); }
+
+  .api-warning {
+    background: rgba(255,183,64,0.08);
+    border: 1px solid rgba(255,183,64,0.2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--amber);
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .api-warning.visible { display: block; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ════════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="logo-area">
+      <div class="logo">
+        <div class="logo-icon">🎬</div>
+        <div>
+          <div class="logo-text">AutoStream</div>
+          <div class="logo-sub">AI Sales Agent</div>
+        </div>
+      </div>
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        Agent Online
+      </div>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-avatar">🤖</div>
+      <div class="agent-name">Alex</div>
+      <div class="agent-role">AutoStream Sales Assistant</div>
+      <div class="agent-tags">
+        <span class="tag">RAG Enabled</span>
+        <span class="tag">LangGraph</span>
+        <span class="tag">Intent Detection</span>
+        <span class="tag">Lead Capture</span>
+      </div>
+    </div>
+
+    <div class="state-panel">
+      <div class="panel-title">Conversation State</div>
+
+      <!-- Intent -->
+      <div class="state-item" id="si-intent">
+        <div class="state-icon">🎯</div>
+        <div class="state-label">Intent</div>
+        <div id="sv-intent"><span class="intent-badge unknown">—</span></div>
+      </div>
+
+      <!-- Turn count -->
+      <div class="state-item" id="si-turns">
+        <div class="state-icon">🔄</div>
+        <div class="state-label">Turns</div>
+        <div class="state-value" id="sv-turns">0</div>
+      </div>
+
+      <div class="panel-title" style="margin-top:16px;">Lead Collection</div>
+
+      <!-- Lead progress -->
+      <div class="progress-bar">
+        <div class="progress-step" id="ps-name"></div>
+        <div class="progress-step" id="ps-email"></div>
+        <div class="progress-step" id="ps-platform"></div>
+      </div>
+
+      <div class="state-item" id="si-name">
+        <div class="state-icon">👤</div>
+        <div class="state-label">Name</div>
+        <div class="state-value empty" id="sv-name">—</div>
+      </div>
+      <div class="state-item" id="si-email">
+        <div class="state-icon">📧</div>
+        <div class="state-label">Email</div>
+        <div class="state-value empty" id="sv-email">—</div>
+      </div>
+      <div class="state-item" id="si-platform">
+        <div class="state-icon">📱</div>
+        <div class="state-label">Platform</div>
+        <div class="state-value empty" id="sv-platform">—</div>
+      </div>
+      <div class="state-item" id="si-captured">
+        <div class="state-icon">✅</div>
+        <div class="state-label">Captured</div>
+        <div class="state-value empty" id="sv-captured">No</div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="model-info">
+        <div class="model-dot"></div>
+        <div>
+          <span class="model-label">LLM Backend</span>
+          <div class="model-name" id="model-display">Auto-detecting...</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ════════════════════════════════════════
+       MAIN CHAT
+  ════════════════════════════════════════ -->
+  <main class="main">
+    <header class="chat-header">
+      <div>
+        <div class="chat-title">AutoStream Chat</div>
+        <div class="chat-subtitle">Social-to-Lead Agentic Workflow · Powered by LangGraph</div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" title="Configure API" onclick="openConfig()">⚙️</button>
+        <button class="icon-btn" title="Clear conversation" onclick="clearChat()">🗑️</button>
+      </div>
+    </header>
+
+    <div class="messages-wrap" id="messages">
+      <div class="welcome" id="welcome-screen">
+        <div class="welcome-icon">🎬</div>
+        <div class="welcome-title">Meet Alex, your AI sales guide</div>
+        <div class="welcome-sub">
+          Ask about AutoStream's plans, pricing, or features.<br>
+          Alex detects your intent, retrieves accurate answers from the knowledge base, and captures your lead when you're ready.
+        </div>
+        <div class="quick-actions">
+          <button class="quick-btn" onclick="sendQuick('Hi there!')">👋 Say hello</button>
+          <button class="quick-btn" onclick="sendQuick('What are your pricing plans?')">💰 View pricing</button>
+          <button class="quick-btn" onclick="sendQuick('What does the Pro plan include?')">⭐ Pro features</button>
+          <button class="quick-btn" onclick="sendQuick('What is your refund policy?')">📋 Refund policy</button>
+          <button class="quick-btn" onclick="sendQuick('I want to sign up for the Pro plan for my YouTube channel')">🚀 Sign me up</button>
+          <button class="quick-btn" onclick="sendQuick('Is there 24/7 support?')">💬 Support info</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="rag-preview" id="rag-preview">
+        <div class="rag-label">📚 Knowledge retrieved</div>
+        <div id="rag-text"></div>
+      </div>
+      <div class="input-row">
+        <textarea
+          class="input-box"
+          id="user-input"
+          placeholder="Ask about AutoStream plans, pricing, or type 'I want to sign up'..."
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send message">➤</button>
+      </div>
+      <div class="input-hint">Press Enter to send · Shift+Enter for new line</div>
+    </div>
+  </main>
+</div>
+
+<!-- ════════════════════════════════════════
+     CONFIG MODAL
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="config-modal">
+  <div class="modal">
+    <div class="modal-title">⚙️ Configure Agent</div>
+    <div class="modal-sub">Set your API key and LLM backend preference.</div>
+
+    <div class="api-warning" id="api-warning">
+      ⚠️ No API key set. The agent won't be able to respond until you add one.
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">LLM Backend</label>
+      <div class="radio-group">
+        <div class="radio-opt selected" id="opt-groq" onclick="selectProvider('groq')">
+          ⚡ Groq<br><span style="font-size:10px;color:var(--text3)">Free & ultra-fast</span>
+        </div>
+        <div class="radio-opt" id="opt-anthropic" onclick="selectProvider('anthropic')">
+          🤖 Anthropic<br><span style="font-size:10px;color:var(--text3)">Claude Haiku</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group" id="groq-field">
+      <label class="form-label">Groq API Key <span style="color:var(--red)">*</span></label>
+      <input type="password" class="form-input" id="groq-key" placeholder="gsk_..."/>
+    </div>
+
+    <div class="form-group" id="anthropic-field" style="display:none">
+      <label class="form-label">Anthropic API Key <span style="color:var(--red)">*</span></label>
+      <input type="password" class="form-input" id="anthropic-key" placeholder="sk-ant-..."/>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeConfig()">Cancel</button>
+      <button class="btn-primary" onclick="saveConfig()">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+const state = {
+  messages: [],           // {role, content}
+  intent: 'unknown',
+  lead_name: null,
+  lead_email: null,
+  lead_platform: null,
+  lead_captured: false,
+  turn_count: 0,
+  awaiting_slot: null,
+  provider: 'groq',       // 'groq' | 'anthropic'
+  groq_key: '',
+  anthropic_key: '',
+};
+
+// Load from localStorage
+function loadConfig() {
+  const saved = localStorage.getItem('autostream_config');
+  if (saved) {
+    const cfg = JSON.parse(saved);
+    state.provider = cfg.provider || 'groq';
+    state.groq_key = cfg.groq_key || '';
+    state.anthropic_key = cfg.anthropic_key || '';
+  }
+  updateModelDisplay();
+}
+
+function saveConfig() {
+  const groqKey = document.getElementById('groq-key').value.trim();
+  const anthropicKey = document.getElementById('anthropic-key').value.trim();
+  const activeKey = state.provider === 'groq' ? groqKey : anthropicKey;
+
+  if (!activeKey) {
+    document.getElementById('api-warning').classList.add('visible');
+    return;
+  }
+
+  state.groq_key = groqKey;
+  state.anthropic_key = anthropicKey;
+  localStorage.setItem('autostream_config', JSON.stringify({
+    provider: state.provider,
+    groq_key: groqKey,
+    anthropic_key: anthropicKey,
+  }));
+
+  updateModelDisplay();
+  closeConfig();
+}
+
+function openConfig() {
+  document.getElementById('groq-key').value = state.groq_key;
+  document.getElementById('anthropic-key').value = state.anthropic_key;
+  selectProvider(state.provider);
+  const noKey = !state.groq_key && !state.anthropic_key;
+  document.getElementById('api-warning').classList.toggle('visible', noKey);
+  document.getElementById('config-modal').classList.add('open');
+}
+
+function closeConfig() {
+  document.getElementById('config-modal').classList.remove('open');
+}
+
+function selectProvider(p) {
+  state.provider = p;
+  document.getElementById('opt-groq').classList.toggle('selected', p === 'groq');
+  document.getElementById('opt-anthropic').classList.toggle('selected', p === 'anthropic');
+  document.getElementById('groq-field').style.display = p === 'groq' ? 'block' : 'none';
+  document.getElementById('anthropic-field').style.display = p === 'anthropic' ? 'block' : 'none';
+}
+
+function updateModelDisplay() {
+  const hasGroq = !!state.groq_key;
+  const hasAnthropic = !!state.anthropic_key;
+  const el = document.getElementById('model-display');
+
+  if (state.provider === 'groq' && hasGroq) {
+    el.textContent = '⚡ llama-3.3-70b (Groq)';
+  } else if (state.provider === 'anthropic' && hasAnthropic) {
+    el.textContent = '🤖 claude-haiku-4-5';
+  } else if (hasGroq) {
+    el.textContent = '⚡ llama-3.3-70b (Groq)';
+    state.provider = 'groq';
+  } else {
+    el.textContent = '⚠️ No API key set';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  SYSTEM PROMPT
+// ════════════════════════════════════════════════════════
+const SYSTEM = `You are Alex, a friendly and knowledgeable sales assistant for AutoStream — an AI-powered video editing SaaS for content creators.
+
+AUTOSTREAM KNOWLEDGE BASE:
+---
+PRICING:
+- Basic Plan: $29/month — 10 videos/month, 720p resolution, basic auto-cut, standard templates, email support (business hours)
+- Pro Plan: $79/month — Unlimited videos, 4K resolution, AI captions, advanced scene detection, custom branding, priority rendering, 24/7 support, API access, team collaboration (5 seats)
+- Annual discount: 20% off — Basic at $23/month, Pro at $63/month
+
+POLICIES:
+- No refunds after 7 days from purchase date
+- Refund requests within 7 days: full refund, no questions asked
+- 24/7 support only on Pro plan; Basic plan has email support Mon-Fri 9am-6pm EST
+- Cancellation: account stays active until end of billing cycle
+- 14-day free Pro trial, no credit card required
+
+FAQs:
+- Supports YouTube, Instagram, TikTok, Twitter/X, LinkedIn, Facebook
+- Upload formats: MP4, MOV, AVI, MKV, WebM (up to 10GB)
+- Processing: Basic 5-15 min; Pro under 3 min with priority queue
+- API access on Pro plan only
+---
+
+INTENT CLASSIFICATION RULES:
+- "greeting" → hello, hi, hey, how are you
+- "inquiry" → questions about features, pricing, plans, refunds, support
+- "high_intent" → wants to sign up, try it, start a plan, subscribe, buy
+
+LEAD CAPTURE RULES (CRITICAL):
+- When intent is high_intent, start collecting: first ask ONLY for name
+- After name: ask ONLY for email
+- After email: ask ONLY for platform (YouTube, Instagram, etc.)
+- After all 3: confirm with lead ID format LEAD-YYYYMMDD-XXX
+
+RESPONSE FORMAT (JSON only, no markdown):
+{
+  "intent": "greeting|inquiry|high_intent|lead_collection|unknown",
+  "message": "your response here",
+  "awaiting_slot": null or "name" or "email" or "platform",
+  "slot_filled": null or {"field": "name|email|platform", "value": "..."},
+  "lead_complete": false or true,
+  "rag_snippet": null or "brief knowledge base excerpt used"
+}
+
+Rules:
+- NEVER make up features or prices not in the knowledge base
+- NEVER ask for lead details unless high_intent detected
+- Be warm, concise (under 4 sentences for most replies), helpful
+- When lead is complete, include lead_id in message`;
+
+// ════════════════════════════════════════════════════════
+//  API CALL
+// ════════════════════════════════════════════════════════
+async function callLLM(messages) {
+  const apiKey = state.provider === 'groq' ? state.groq_key : state.anthropic_key;
+
+  if (!apiKey) {
+    openConfig();
+    throw new Error('No API key configured');
+  }
+
+  if (state.provider === 'groq') {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'system', content: SYSTEM }, ...messages],
+        max_tokens: 800,
+        temperature: 0.3,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Groq API error');
+    }
+    const data = await res.json();
+    return data.choices[0].message.content;
+
+  } else {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        system: SYSTEM,
+        messages,
+        max_tokens: 800,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Anthropic API error');
+    }
+    const data = await res.json();
+    return data.content[0].text;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  SEND MESSAGE
+// ════════════════════════════════════════════════════════
+async function sendMessage() {
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
+  if (document.getElementById('send-btn').disabled) return;
+
+  // Hide welcome
+  const welcome = document.getElementById('welcome-screen');
+  if (welcome) welcome.style.display = 'none';
+
+  // Append user message
+  addMessage('user', text);
+  state.messages.push({ role: 'user', content: buildUserContent(text) });
+  input.value = '';
+  autoResize(input);
+
+  // Show typing
+  const typingId = showTyping();
+  setSending(true);
+
+  try {
+    const raw = await callLLM(state.messages.slice(-12)); // last 12 for context
+    const parsed = parseResponse(raw);
+
+    removeTyping(typingId);
+
+    // Update state
+    if (parsed.intent) state.intent = parsed.intent;
+    if (parsed.awaiting_slot !== undefined) state.awaiting_slot = parsed.awaiting_slot;
+    if (parsed.slot_filled) {
+      const { field, value } = parsed.slot_filled;
+      if (field === 'name') state.lead_name = value;
+      if (field === 'email') state.lead_email = value;
+      if (field === 'platform') state.lead_platform = value;
+    }
+    if (parsed.lead_complete) {
+      state.lead_captured = true;
+      state.awaiting_slot = null;
+    }
+    state.turn_count++;
+
+    // Show RAG preview
+    if (parsed.rag_snippet) {
+      document.getElementById('rag-text').textContent = parsed.rag_snippet;
+      document.getElementById('rag-preview').classList.add('visible');
+      setTimeout(() => document.getElementById('rag-preview').classList.remove('visible'), 5000);
+    }
+
+    // Add bot message
+    addMessage('bot', parsed.message, parsed.lead_complete);
+
+    // Append to history
+    state.messages.push({ role: 'assistant', content: raw });
+
+    updateSidebar();
+
+  } catch (err) {
+    removeTyping(typingId);
+    addMessage('bot', `⚠️ Error: ${err.message}. Please check your API key in settings.`);
+  }
+
+  setSending(false);
+}
+
+function buildUserContent(text) {
+  // Append state context for the LLM
+  const ctx = `[State: intent=${state.intent}, awaiting=${state.awaiting_slot || 'none'}, name=${state.lead_name || 'null'}, email=${state.lead_email || 'null'}, platform=${state.lead_platform || 'null'}, captured=${state.lead_captured}]`;
+  return `${text}\n${ctx}`;
+}
+
+function parseResponse(raw) {
+  try {
+    const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const start = clean.indexOf('{');
+    const end = clean.lastIndexOf('}');
+    if (start !== -1 && end !== -1) {
+      return JSON.parse(clean.slice(start, end + 1));
+    }
+  } catch (e) {}
+  // Fallback: treat raw as plain message
+  return { intent: state.intent, message: raw, awaiting_slot: state.awaiting_slot };
+}
+
+// ════════════════════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════════════════════
+function addMessage(role, text, isLeadSuccess = false) {
+  const wrap = document.getElementById('messages');
+  const group = document.createElement('div');
+  group.className = 'message-group';
+
+  const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  let extra = '';
+  if (isLeadSuccess) {
+    const leadId = `LEAD-${Date.now().toString().slice(-8)}-${(state.lead_name || 'UNK').slice(0,3).toUpperCase()}`;
+    extra = `
+      <div class="lead-success">
+        <div class="lead-success-title">🎉 Lead Captured Successfully</div>
+        <div class="lead-field"><span class="lead-field-label">Lead ID</span><span class="lead-field-value">${leadId}</span></div>
+        <div class="lead-field"><span class="lead-field-label">Name</span><span class="lead-field-value">${state.lead_name || '—'}</span></div>
+        <div class="lead-field"><span class="lead-field-label">Email</span><span class="lead-field-value">${state.lead_email || '—'}</span></div>
+        <div class="lead-field"><span class="lead-field-label">Platform</span><span class="lead-field-value">${state.lead_platform || '—'}</span></div>
+      </div>`;
+  }
+
+  group.innerHTML = `
+    <div class="message-row ${role}">
+      <div class="msg-avatar ${role}">${role === 'bot' ? '🤖' : '👤'}</div>
+      <div class="bubble ${role}">${escHtml(text)}${extra}</div>
+    </div>
+    <div class="msg-time ${role === 'bot' ? 'bot-time' : ''}">${now}</div>`;
+
+  wrap.appendChild(group);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+function showTyping() {
+  const wrap = document.getElementById('messages');
+  const el = document.createElement('div');
+  const id = 'typing-' + Date.now();
+  el.id = id;
+  el.className = 'message-group';
+  el.innerHTML = `
+    <div class="message-row">
+      <div class="msg-avatar bot">🤖</div>
+      <div class="typing-bubble">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>`;
+  wrap.appendChild(el);
+  wrap.scrollTop = wrap.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function setSending(v) {
+  document.getElementById('send-btn').disabled = v;
+  document.getElementById('user-input').disabled = v;
+}
+
+function sendQuick(text) {
+  document.getElementById('user-input').value = text;
+  sendMessage();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function clearChat() {
+  if (!confirm('Clear this conversation?')) return;
+  // Reset state
+  state.messages = [];
+  state.intent = 'unknown';
+  state.lead_name = null;
+  state.lead_email = null;
+  state.lead_platform = null;
+  state.lead_captured = false;
+  state.turn_count = 0;
+  state.awaiting_slot = null;
+
+  const wrap = document.getElementById('messages');
+  wrap.innerHTML = `
+    <div class="welcome" id="welcome-screen">
+      <div class="welcome-icon">🎬</div>
+      <div class="welcome-title">Meet Alex, your AI sales guide</div>
+      <div class="welcome-sub">
+        Ask about AutoStream's plans, pricing, or features.<br>
+        Alex detects your intent, retrieves accurate answers from the knowledge base, and captures your lead when you're ready.
+      </div>
+      <div class="quick-actions">
+        <button class="quick-btn" onclick="sendQuick('Hi there!')">👋 Say hello</button>
+        <button class="quick-btn" onclick="sendQuick('What are your pricing plans?')">💰 View pricing</button>
+        <button class="quick-btn" onclick="sendQuick('What does the Pro plan include?')">⭐ Pro features</button>
+        <button class="quick-btn" onclick="sendQuick('What is your refund policy?')">📋 Refund policy</button>
+        <button class="quick-btn" onclick="sendQuick('I want to sign up for the Pro plan for my YouTube channel')">🚀 Sign me up</button>
+        <button class="quick-btn" onclick="sendQuick('Is there 24/7 support?')">💬 Support info</button>
+      </div>
+    </div>`;
+
+  updateSidebar();
+}
+
+// ════════════════════════════════════════════════════════
+//  SIDEBAR UPDATES
+// ════════════════════════════════════════════════════════
+function updateSidebar() {
+  // Intent badge
+  const intentEl = document.getElementById('sv-intent');
+  const intentMap = {
+    greeting: 'greeting', inquiry: 'inquiry',
+    high_intent: 'high_intent', lead_collection: 'lead_collection', unknown: 'unknown'
+  };
+  const labelMap = {
+    greeting: '👋 Greeting', inquiry: '🔍 Inquiry',
+    high_intent: '🚀 High Intent', lead_collection: '📝 Collecting', unknown: '—'
+  };
+  intentEl.innerHTML = `<span class="intent-badge ${intentMap[state.intent] || 'unknown'}">${labelMap[state.intent] || '—'}</span>`;
+
+  // Turns
+  document.getElementById('sv-turns').textContent = state.turn_count;
+
+  // Lead slots
+  setSlot('name', state.lead_name, 'ps-name');
+  setSlot('email', state.lead_email, 'ps-email');
+  setSlot('platform', state.lead_platform, 'ps-platform');
+
+  // Captured
+  const capEl = document.getElementById('sv-captured');
+  const capItem = document.getElementById('si-captured');
+  if (state.lead_captured) {
+    capEl.textContent = '✓ Yes';
+    capEl.className = 'state-value';
+    capEl.style.color = 'var(--green)';
+    capItem.classList.add('filled');
+  } else {
+    capEl.textContent = 'No';
+    capEl.className = 'state-value empty';
+    capEl.style.color = '';
+  }
+
+  // Awaiting slot — highlight active
+  ['name','email','platform'].forEach(s => {
+    const item = document.getElementById(`si-${s}`);
+    if (state.awaiting_slot === s) {
+      item.style.borderColor = 'rgba(124,107,255,0.5)';
+      item.style.background = 'rgba(124,107,255,0.06)';
+    } else {
+      item.style.borderColor = '';
+      item.style.background = '';
+    }
+  });
+}
+
+function setSlot(field, value, progressId) {
+  const valEl = document.getElementById(`sv-${field}`);
+  const item = document.getElementById(`si-${field}`);
+  const prog = document.getElementById(progressId);
+
+  if (value) {
+    valEl.textContent = value.length > 14 ? value.slice(0, 12) + '…' : value;
+    valEl.className = 'state-value';
+    item.classList.add('filled');
+    prog.className = 'progress-step done';
+  } else if (state.awaiting_slot === field) {
+    valEl.textContent = 'Asking…';
+    valEl.className = 'state-value';
+    valEl.style.color = 'var(--accent2)';
+    prog.className = 'progress-step active';
+  } else {
+    valEl.textContent = '—';
+    valEl.className = 'state-value empty';
+    valEl.style.color = '';
+    prog.className = 'progress-step';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+loadConfig();
+updateSidebar();
+
+// Auto-open config if no key saved
+if (!state.groq_key && !state.anthropic_key) {
+  setTimeout(openConfig, 800);
+}
+
+// Close modal on overlay click
+document.getElementById('config-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeConfig();
+});
+</script>
+</body>
+</html>
