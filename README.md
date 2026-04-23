@@ -1,7 +1,5 @@
 # AutoStream AI Agent — Social-to-Lead Agentic Workflow
 
-> **Machine Learning Intern Assignment — ServiceHive / Inflx**
-> Built with LangGraph · Claude 3 Haiku · FAISS RAG · Python 3.9+
 
 ---
 
